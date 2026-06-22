@@ -114,11 +114,15 @@ export async function POST(req: NextRequest) {
   const captureId: string = capture.id
 
   if (classification.kind === 'task') {
+    const xpValue = classification.mission_roi >= 4 ? 60 : classification.mission_roi >= 3 ? 45 : 30
     await db.from('tasks').insert({
       user_id: userId, title: classification.summary,
       urgency: urgencyText(classification.urgency),
       tags: classification.tags,
-      category: 'general', xp_value: 40, status: 'open',
+      category: 'general',
+      xp_value: xpValue,
+      status: 'open',
+      mission_roi: classification.mission_roi,
     })
   }
 
@@ -131,8 +135,10 @@ export async function POST(req: NextRequest) {
   // Award XP for the capture itself
   const { leveledUp, newLevel } = await awardXP(10, classification.kind)
 
+  const roiLabels: Record<number, string> = { 5: '💰💰💰 MONEY MOVE', 4: '💰💰 High ROI', 3: '💰 Medium ROI', 2: '📋 Low ROI', 1: '📌 No ROI' }
   const urgencyLabels: Record<number, string> = { 1: '🟢 Low', 2: '🔵 Normal', 3: '🟡 Medium', 4: '🟠 High', 5: '🔴 Critical' }
-  let replyText = `✅ *${classification.kind.toUpperCase()}* logged\n_${classification.summary}_\n⚡ +10 XP`
+  const xpGained = classification.mission_roi >= 4 ? 60 : classification.mission_roi >= 3 ? 45 : 30
+  let replyText = `✅ *${classification.kind.toUpperCase()}* logged\n_${classification.summary}_\n${roiLabels[classification.mission_roi] ?? '📋'} · ⚡ +${xpGained} XP`
   if (leveledUp) replyText += `\n\n🎉 *LEVEL UP! Level ${newLevel}*`
 
   await sendTelegram(chatId, replyText, {

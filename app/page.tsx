@@ -1,6 +1,6 @@
 import { TopRail } from '@/components/dashboard/TopRail'
 import { LevelCard } from '@/components/dashboard/LevelCard'
-import { QuestList } from '@/components/dashboard/QuestList'
+import { MissionBoard } from '@/components/dashboard/MissionBoard'
 import { HabitTracker } from '@/components/dashboard/HabitTracker'
 import { CaptureBox } from '@/components/dashboard/CaptureBox'
 import { MealPlanner } from '@/components/dashboard/MealPlanner'
@@ -22,7 +22,7 @@ export default function HomePage() {
 
           {/* Right — Quests + nutrition */}
           <div className="flex flex-col gap-4">
-            <QuestList />
+            <MissionBoard />
             <MealPlanner />
             <ShoppingList />
 
