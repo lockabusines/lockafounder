@@ -14,12 +14,17 @@ const URGENCY_COLOR: Record<string, string> = {
 export function QuestList() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [completing, setCompleting] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => { load() }, [])
 
   async function load() {
-    const r = await fetch('/api/tasks')
-    if (r.ok) setTasks(await r.json())
+    try {
+      const r = await fetch('/api/tasks')
+      if (r.ok) setTasks(await r.json())
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function complete(id: string, xp: number) {
@@ -36,7 +41,11 @@ export function QuestList() {
         <span className="text-xs" style={{ color: 'oklch(0.55 0.010 264)' }}>{tasks.length} open</span>
       </div>
 
-      {tasks.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col gap-2 py-1">
+          {[1,2,3].map(i => <div key={i} className="h-8 rounded-lg animate-pulse" style={{ background: 'oklch(0.18 0.015 264)' }} />)}
+        </div>
+      ) : tasks.length === 0 ? (
         <p className="text-sm py-4 text-center" style={{ color: 'oklch(0.40 0.008 264)' }}>
           Queue clear. Send a task via Telegram.
         </p>

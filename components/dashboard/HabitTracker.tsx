@@ -19,8 +19,18 @@ function isDueToday(h: Habit): boolean {
 export function HabitTracker() {
   const [habits, setHabits] = useState<Habit[]>([])
   const [logging, setLogging] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => { fetch('/api/habits').then(r => r.json()).then(setHabits).catch(() => {}) }, [])
+  useEffect(() => {
+    fetch('/api/habits')
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then(data => { setHabits(data); setLoading(false) })
+      .catch(e => { setError(e.message); setLoading(false) })
+  }, [])
 
   const today = new Date().toISOString().slice(0, 10)
   const due = habits.filter(isDueToday)
@@ -36,6 +46,24 @@ export function HabitTracker() {
     setLogging(null)
   }
 
+  if (loading) return (
+    <div className="glass p-5">
+      <p className="label mb-3">Daily Habits</p>
+      <div className="flex flex-col gap-2">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="h-9 rounded-lg animate-pulse" style={{ background: 'oklch(0.18 0.015 264)' }} />
+        ))}
+      </div>
+    </div>
+  )
+
+  if (error) return (
+    <div className="glass p-5">
+      <p className="label mb-2">Daily Habits</p>
+      <p className="text-xs" style={{ color: 'oklch(0.58 0.22 25)' }}>Failed to load: {error}</p>
+    </div>
+  )
+
   return (
     <div className="glass p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -44,6 +72,12 @@ export function HabitTracker() {
           {done}/{due.length}
         </span>
       </div>
+
+      {due.length === 0 && (
+        <p className="text-sm py-2 text-center" style={{ color: 'oklch(0.40 0.008 264)' }}>
+          No habits due today.
+        </p>
+      )}
 
       <div className="flex flex-col gap-1">
         {due.map(habit => {

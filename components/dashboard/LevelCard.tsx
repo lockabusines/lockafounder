@@ -18,9 +18,13 @@ const STATS = [
 
 export function LevelCard() {
   const [stats, setStats] = useState<Stats | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/stats').then(r => r.json()).then(setStats).catch(() => {})
+    fetch('/api/stats')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { setStats(d); setLoading(false) })
+      .catch(() => setLoading(false))
   }, [])
 
   const level = stats?.level ?? 1
@@ -28,6 +32,13 @@ export function LevelCard() {
   const xpNext = stats?.xp_next_level ?? 150
   const pct = Math.round((xp / xpNext) * 100)
   const maxStat = Math.max(...STATS.map(s => (stats as Record<string, number> | null)?.[s.key] ?? 0), 1)
+
+  if (loading) return (
+    <div className="glass glow-blue p-5 flex flex-col gap-4">
+      <div className="h-6 w-32 rounded animate-pulse" style={{ background: 'oklch(0.18 0.015 264)' }} />
+      <div className="h-10 w-20 rounded animate-pulse" style={{ background: 'oklch(0.18 0.015 264)' }} />
+    </div>
+  )
 
   return (
     <div className="glass glow-blue p-5 flex flex-col gap-4">

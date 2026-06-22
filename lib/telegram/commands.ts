@@ -106,9 +106,84 @@ export async function handleCommand(command: string, args: string, chatId: numbe
     }
 
     case '/add': {
-      // handled by regular capture pipeline — just confirm
       if (!args.trim()) { await sendTelegram(chatId, 'Usage: /add [quest description]'); return true }
-      return false // fall through to capture pipeline with args as text
+      return false
+    }
+
+    case '/week': {
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const [{ data: done }, { data: habits }, { data: stats }] = await Promise.all([
+        db.from('tasks').select('title, xp_value, category').eq('user_id', USER_ID).eq('status', 'complete').gte('completed_at', weekAgo),
+        db.from('habits').select('name, icon, current_streak, longest_streak').eq('user_id', USER_ID).eq('active', true),
+        db.from('user_stats').select('*').eq('user_id', USER_ID).single(),
+      ])
+
+      const totalXP = (done ?? []).reduce((sum: number, t: { xp_value?: number }) => sum + (t.xp_value ?? 0), 0)
+      const taskLines = (done ?? []).slice(0, 10).map((t: { title: string }) => `✅ ${t.title}`).join('\n') || '_None yet_'
+
+      // Deduplicate habits by name
+      const seen = new Map<string, { name: string; icon: string; current_streak: number; longest_streak: number }>()
+      for (const h of (habits ?? [])) {
+        if (!seen.has(h.name)) seen.set(h.name, h)
+      }
+      const uniqueHabits = Array.from(seen.values())
+      const habitLines = uniqueHabits.map(h => `${h.icon} ${h.name}: 🔥${h.current_streak}d`).join('\n')
+
+      await sendTelegram(chatId,
+        `*WEEK REVIEW*\n━━━━━━━━━━━\n` +
+        `Level ${stats?.level ?? 1} · ${stats?.xp ?? 0} XP total\n` +
+        `+${totalXP} XP earned this week · ${(done ?? []).length} quests done\n\n` +
+        `*QUESTS COMPLETED*\n${taskLines}\n\n` +
+        `*HABIT STREAKS*\n${habitLines}`
+      )
+      return true
+    }
+
+    case '/ask': {
+      if (!args.trim()) { await sendTelegram(chatId, 'Usage: /ask [question about your life/goals]'); return true }
+      const query = args.trim()
+
+      // Search captures for relevant context
+      const { data: captures } = await db
+        .from('captures')
+        .select('raw_text, created_at')
+        .eq('user_id', USER_ID)
+        .ilike('raw_text', `%${query.split(' ')[0]}%`)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      const context = (captures ?? []).map((c: { raw_text: string; created_at: string }) =>
+        `[${c.created_at.slice(0, 10)}] ${c.raw_text}`
+      ).join('\n')
+
+      const Anthropic = (await import('@anthropic-ai/sdk')).default
+      const ai = new Anthropic()
+      const response = await ai.messages.create({
+        model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6',
+        max_tokens: 400,
+        messages: [{
+          role: 'user',
+          content: `You are Locka's personal AI. Answer his question based on his captured notes. Be direct, specific, motivating.\n\nHis recent notes:\n${context || 'No relevant notes found.'}\n\nQuestion: ${query}`,
+        }],
+      })
+      const answer = response.content[0].type === 'text' ? response.content[0].text : 'Could not generate answer.'
+      await sendTelegram(chatId, answer)
+      return true
+    }
+
+    case '/help': {
+      await sendTelegram(chatId,
+        `*SOLO LIFE OS — COMMANDS*\n━━━━━━━━━━━\n` +
+        `/today — daily brief (quests + habits + level)\n` +
+        `/stats — your full stat sheet\n` +
+        `/streak — all habit streaks\n` +
+        `/week — weekly review\n` +
+        `/complete — mark a quest or habit done\n` +
+        `/ask [question] — search your notes with AI\n` +
+        `/add [task] — add a quest\n\n` +
+        `_Or just send any message to capture a task, thought, or voice note._`
+      )
+      return true
     }
 
     default:
