@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { TopRail } from '@/components/dashboard/TopRail'
 import { LevelCard } from '@/components/dashboard/LevelCard'
 import { MissionBoard } from '@/components/dashboard/MissionBoard'
@@ -18,6 +19,24 @@ export default function HomePage() {
           <div className="flex flex-col gap-4">
             <LevelCard />
             <HabitTracker />
+            {/* Mission Control link */}
+            <Link href="/mission">
+              <div
+                className="glass p-4 flex items-center justify-between gap-3 cursor-pointer transition-all hover:opacity-80"
+                style={{ border: '1px solid oklch(0.78 0.18 80 / 0.4)', background: 'oklch(0.78 0.18 80 / 0.05)' }}
+              >
+                <div>
+                  <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'oklch(0.78 0.18 80)' }}>
+                    Mission Control
+                  </p>
+                  <p className="text-sm font-bold text-white mt-0.5">Retire Mum 👑</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'oklch(0.40 0.008 264)' }}>
+                    Income streams · Pipeline · Gap tracker
+                  </p>
+                </div>
+                <span className="text-2xl">→</span>
+              </div>
+            </Link>
           </div>
 
           {/* Right — Quests + nutrition */}
