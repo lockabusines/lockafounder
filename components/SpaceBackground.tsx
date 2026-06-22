@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 
-const NUM_STARS = 220
-const SPEED = 0.4
+const NUM_STARS = 280
+const SPEED = 2.2
 
 interface Star { x: number; y: number; z: number }
 
@@ -34,7 +34,7 @@ export function SpaceBackground() {
 
     let raf: number
     function draw() {
-      ctx.fillStyle = 'rgba(0,1,12,0.18)'
+      ctx.fillStyle = 'rgba(0,1,12,0.12)'
       ctx.fillRect(0, 0, W, H)
 
       for (const s of stars) {
@@ -48,15 +48,23 @@ export function SpaceBackground() {
         }
         const cur = px(s)
         const t = 1 - s.z / W
-        const alpha = Math.min(1, t * 1.6)
-        const w = Math.max(0.4, t * 2.2)
+        const alpha = Math.min(1, t * 2.0)
+        const w = Math.max(0.6, t * 3.5)
 
         ctx.beginPath()
         ctx.moveTo(prev.sx, prev.sy)
         ctx.lineTo(cur.sx, cur.sy)
         ctx.lineWidth = w
-        ctx.strokeStyle = `rgba(${Math.floor(160 + t * 80)},${Math.floor(190 + t * 60)},255,${alpha * 0.85})`
+        ctx.strokeStyle = `rgba(${Math.floor(140 + t * 115)},${Math.floor(180 + t * 75)},255,${alpha})`
         ctx.stroke()
+
+        // bright dot at head of fast stars
+        if (t > 0.7) {
+          ctx.beginPath()
+          ctx.arc(cur.sx, cur.sy, w * 0.8, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(255,255,255,${t * 0.9})`
+          ctx.fill()
+        }
       }
       raf = requestAnimationFrame(draw)
     }
@@ -84,37 +92,45 @@ export function SpaceBackground() {
         width: '100vw', height: '100vh', pointerEvents: 'none',
       }} />
 
-      {/* Planet — massive glowing orb upper right */}
+      {/* Planet — dominant upper-right presence */}
       <div style={{
-        position: 'fixed', top: '-25vh', right: '-15vw',
-        width: '70vw', height: '70vw', borderRadius: '50%',
-        background: 'radial-gradient(circle at 38% 35%, rgba(20,140,255,0.18) 0%, rgba(40,20,180,0.10) 35%, rgba(10,0,80,0.06) 65%, transparent 100%)',
-        filter: 'blur(55px)', zIndex: 1, pointerEvents: 'none',
+        position: 'fixed', top: '-30vh', right: '-18vw',
+        width: '75vw', height: '75vw', borderRadius: '50%',
+        background: 'radial-gradient(circle at 38% 35%, rgba(0,160,255,0.35) 0%, rgba(20,60,220,0.22) 30%, rgba(60,0,180,0.14) 55%, rgba(10,0,60,0.06) 75%, transparent 100%)',
+        filter: 'blur(35px)', zIndex: 1, pointerEvents: 'none',
       }} />
 
-      {/* Planet hard edge ring — faint */}
+      {/* Planet surface sheen */}
       <div style={{
-        position: 'fixed', top: '-22vh', right: '-12vw',
-        width: '64vw', height: '64vw', borderRadius: '50%',
-        border: '1px solid rgba(60,160,255,0.06)',
-        boxShadow: 'inset 0 0 80px rgba(30,80,255,0.05)',
+        position: 'fixed', top: '-28vh', right: '-16vw',
+        width: '70vw', height: '70vw', borderRadius: '50%',
+        border: '1px solid rgba(0,180,255,0.18)',
+        boxShadow: 'inset 0 0 120px rgba(0,100,255,0.12), 0 0 80px rgba(0,120,255,0.15)',
         zIndex: 1, pointerEvents: 'none',
       }} />
 
-      {/* Nebula left — purple */}
+      {/* Nebula left — purple, strong */}
       <div style={{
-        position: 'fixed', top: '15vh', left: '-20vw',
-        width: '50vw', height: '50vw', borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(100,20,200,0.07) 0%, transparent 70%)',
-        filter: 'blur(80px)', zIndex: 1, pointerEvents: 'none',
+        position: 'fixed', top: '10vh', left: '-25vw',
+        width: '55vw', height: '55vw', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(120,0,255,0.16) 0%, rgba(80,0,200,0.08) 50%, transparent 75%)',
+        filter: 'blur(60px)', zIndex: 1, pointerEvents: 'none',
       }} />
 
-      {/* Horizon glow — centre bottom */}
+      {/* Second nebula — bottom left, teal */}
       <div style={{
-        position: 'fixed', bottom: '-5vh', left: '20%', right: '20%',
-        height: '30vh', borderRadius: '50%',
-        background: 'radial-gradient(ellipse, rgba(0,100,255,0.08) 0%, transparent 70%)',
-        filter: 'blur(40px)', zIndex: 1, pointerEvents: 'none',
+        position: 'fixed', bottom: '5vh', left: '5vw',
+        width: '35vw', height: '35vw', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(0,200,180,0.10) 0%, transparent 70%)',
+        filter: 'blur(50px)', zIndex: 1, pointerEvents: 'none',
+      }} />
+
+      {/* Horizon glow — strong */}
+      <div style={{
+        position: 'fixed', bottom: '-8vh', left: '10%', right: '10%',
+        height: '35vh', borderRadius: '50%',
+        background: 'radial-gradient(ellipse, rgba(0,120,255,0.16) 0%, rgba(0,60,200,0.08) 50%, transparent 80%)',
+        filter: 'blur(30px)', zIndex: 1, pointerEvents: 'none',
       }} />
 
       {/* Perspective grid floor */}
