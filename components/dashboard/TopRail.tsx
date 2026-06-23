@@ -11,7 +11,7 @@ export function TopRail() {
     function tick() {
       const now = new Date()
       setTime(now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
-      setDate(now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }))
+      setDate(now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase())
     }
     tick()
     const id = setInterval(tick, 1000)
@@ -20,66 +20,50 @@ export function TopRail() {
 
   return (
     <header
-      className="sticky top-0 z-40 flex items-center justify-between px-5 py-3"
+      className="sticky top-0 z-40 flex items-center justify-between px-5 py-2.5"
       style={{
-        background: 'rgba(0, 6, 25, 0.92)',
-        borderBottom: '1px solid rgba(0, 160, 255, 0.20)',
-        backdropFilter: 'blur(24px)',
-        boxShadow: '0 1px 0 rgba(0, 200, 255, 0.08), 0 4px 20px rgba(0, 0, 20, 0.6)',
+        background: '#0e0e0f',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
       }}
     >
-      {/* Left — brand */}
-      <div className="flex items-center gap-3">
-        <div
-          className="w-2 h-2 rounded-full animate-pulse-glow"
-          style={{ background: 'rgba(0, 220, 255, 1)', boxShadow: '0 0 8px rgba(0,220,255,0.9), 0 0 20px rgba(0,180,255,0.5)' }}
-        />
-        <span
-          className="text-sm font-bold tracking-widest uppercase text-glow-cyan"
-          style={{ fontFamily: 'Orbitron, sans-serif', color: 'rgba(0, 220, 255, 0.95)', letterSpacing: '0.18em' }}
-        >
-          Solo Life OS
-        </span>
-        <span style={{ color: 'rgba(0, 140, 255, 0.3)', fontSize: '0.6rem', marginLeft: 4 }}>▸</span>
-        <Link href="/mission">
-          <span className="text-xs tracking-wider uppercase transition-all hover:opacity-80"
-            style={{ fontFamily: 'Orbitron, sans-serif', color: 'rgba(255,200,0,0.7)', letterSpacing: '0.12em' }}>
-            Mission
+      {/* Left — nav */}
+      <div className="flex items-center gap-1" style={{ fontFamily: 'var(--font-geist-sans)', fontSize: '0.7rem' }}>
+        <div className="flex items-center gap-2 mr-3">
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#1aff8c' }} />
+          <span className="font-semibold tracking-wider uppercase" style={{ color: '#f0f0f0', letterSpacing: '0.12em', fontSize: '0.65rem' }}>
+            Solo Life OS
           </span>
+        </div>
+        <span style={{ color: 'rgba(255,255,255,0.2)' }}>·</span>
+        <Link href="/" className="px-2 py-1 rounded transition-colors hover:bg-white/5">
+          <span style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.62rem' }}>Dashboard</span>
         </Link>
-        <span style={{ color: 'rgba(0, 140, 255, 0.3)', fontSize: '0.6rem' }}>▸</span>
-        <Link href="/crm">
-          <span className="text-xs tracking-wider uppercase transition-all hover:opacity-80"
-            style={{ fontFamily: 'Orbitron, sans-serif', color: 'rgba(0,220,255,0.7)', letterSpacing: '0.12em' }}>
-            CRM
-          </span>
+        <Link href="/mission" className="px-2 py-1 rounded transition-colors hover:bg-white/5">
+          <span style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.62rem' }}>Mission</span>
         </Link>
-      </div>
-
-      {/* Centre — status indicators */}
-      <div className="hidden md:flex items-center gap-4">
-        {['SYS', 'DB', 'BOT'].map((sys, i) => (
-          <div key={sys} className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full" style={{
-              background: i === 2 ? 'rgba(0,255,120,1)' : 'rgba(0,220,255,1)',
-              boxShadow: `0 0 6px ${i === 2 ? 'rgba(0,255,120,0.8)' : 'rgba(0,220,255,0.8)'}`,
-            }} />
-            <span style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '0.6rem', color: 'rgba(0, 160, 255, 0.6)', letterSpacing: '0.1em' }}>{sys}</span>
-          </div>
-        ))}
+        <Link href="/crm" className="px-2 py-1 rounded transition-colors hover:bg-white/5">
+          <span style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.62rem' }}>CRM</span>
+        </Link>
       </div>
 
       {/* Right — clock */}
-      <div className="text-right">
-        <p
-          className="text-sm font-semibold"
-          style={{ fontFamily: 'Share Tech Mono, monospace', color: 'rgba(0, 220, 255, 0.9)', letterSpacing: '0.08em' }}
-        >
-          {time}
-        </p>
-        <p className="text-xs" style={{ color: 'rgba(0, 140, 255, 0.55)', letterSpacing: '0.05em', fontFamily: 'Share Tech Mono, monospace' }}>
-          {date}
-        </p>
+      <div className="flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-3">
+          {['SYS', 'DB', 'BOT'].map((sys, i) => (
+            <div key={sys} className="flex items-center gap-1.5">
+              <div className="w-1 h-1 rounded-full" style={{ background: i === 2 ? '#1aff8c' : 'rgba(255,255,255,0.3)' }} />
+              <span style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em' }}>{sys}</span>
+            </div>
+          ))}
+        </div>
+        <div className="text-right">
+          <p className="font-mono font-semibold" style={{ fontSize: '0.8rem', color: '#f0f0f0', letterSpacing: '0.06em', fontFamily: 'var(--font-geist-mono)' }}>
+            {time}
+          </p>
+          <p style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', fontFamily: 'var(--font-geist-mono)' }}>
+            {date}
+          </p>
+        </div>
       </div>
     </header>
   )

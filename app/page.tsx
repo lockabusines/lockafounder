@@ -7,7 +7,24 @@ import { CaptureBox } from '@/components/dashboard/CaptureBox'
 import { MealPlanner } from '@/components/dashboard/MealPlanner'
 import { ShoppingList } from '@/components/dashboard/ShoppingList'
 
-const MUTED = 'rgba(100,140,180,0.55)'
+const NAV_CARDS = [
+  {
+    href: '/mission',
+    id: '05',
+    label: 'Mission Control',
+    title: 'Retire Mum',
+    sub: 'Income streams · Gap tracker',
+    accent: '#f5c842',
+  },
+  {
+    href: '/crm',
+    id: '06',
+    label: 'CRM',
+    title: 'Jobs & Clients',
+    sub: 'Pipeline · Contacts · Revenue',
+    accent: '#4db8ff',
+  },
+]
 
 export default function HomePage() {
   return (
@@ -15,58 +32,46 @@ export default function HomePage() {
       <TopRail />
 
       <main className="flex-1 p-4 md:p-5">
-        <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-4 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-3 max-w-5xl mx-auto">
 
-          {/* Left — Identity */}
-          <div className="flex flex-col gap-4">
+          {/* Left column */}
+          <div className="flex flex-col gap-3">
             <LevelCard />
             <HabitTracker />
-            {/* Mission Control link */}
-            <Link href="/mission">
-              <div
-                className="glass p-4 flex items-center justify-between gap-3 cursor-pointer transition-all hover:opacity-80"
-                style={{ border: '1px solid rgba(255,200,0,0.35)', background: 'rgba(255,180,0,0.04)' }}
-              >
-                <div>
-                  <p className="label" style={{ color: 'rgba(255,200,0,0.8)' }}>Mission Control</p>
-                  <p className="text-sm font-bold text-white mt-0.5">Retire Mum 👑</p>
-                  <p className="text-xs mt-0.5" style={{ color: MUTED }}>Income streams · Gap tracker</p>
-                </div>
-                <span className="text-xl" style={{ color: 'rgba(255,200,0,0.6)' }}>→</span>
-              </div>
-            </Link>
 
-            {/* CRM link */}
-            <Link href="/crm">
-              <div
-                className="glass p-4 flex items-center justify-between gap-3 cursor-pointer transition-all hover:opacity-80"
-                style={{ border: '1px solid rgba(0,200,255,0.35)', background: 'rgba(0,180,255,0.04)' }}
-              >
-                <div>
-                  <p className="label" style={{ color: 'rgba(0,200,255,0.8)' }}>CRM</p>
-                  <p className="text-sm font-bold text-white mt-0.5">Jobs & Clients 📋</p>
-                  <p className="text-xs mt-0.5" style={{ color: MUTED }}>Pipeline · Contacts · Revenue</p>
+            {/* Quick-nav cards */}
+            {NAV_CARDS.map(({ href, id, label, title, sub, accent }) => (
+              <Link key={href} href={href}>
+                <div
+                  className="glass p-4 flex items-center justify-between gap-3 cursor-pointer"
+                  style={{ borderLeft: `2px solid ${accent}44` }}
+                >
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="section-id">{id} //</span>
+                      <span className="label" style={{ color: accent }}>{label}</span>
+                    </div>
+                    <p className="text-sm font-semibold" style={{ color: '#f0f0f0' }}>{title}</p>
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{sub}</p>
+                  </div>
+                  <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '1rem' }}>›</span>
                 </div>
-                <span className="text-xl" style={{ color: 'rgba(0,200,255,0.6)' }}>→</span>
-              </div>
-            </Link>
+              </Link>
+            ))}
           </div>
 
-          {/* Right — Quests + nutrition */}
-          <div className="flex flex-col gap-4">
+          {/* Right column */}
+          <div className="flex flex-col gap-3">
             <MissionBoard />
             <MealPlanner />
             <ShoppingList />
 
-            {/* Quick capture hint */}
-            <div
-              className="glass p-4 flex items-center gap-3 text-sm"
-              style={{ borderColor: 'oklch(0.28 0.025 264 / 0.4)' }}
-            >
-              <span style={{ color: 'oklch(0.45 0.010 264)' }}>📡</span>
-              <span style={{ color: 'oklch(0.45 0.010 264)' }}>
-                Send any message to your Telegram bot to log a quest, habit, or thought.
-                Type <strong style={{ color: 'oklch(0.65 0.20 250)' }}>/today</strong> for your daily brief.
+            {/* Telegram hint */}
+            <div className="glass p-3 flex items-center gap-3">
+              <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.75rem' }}>📡</span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem' }}>
+                Send any message to your Telegram bot to log a quest, habit, or thought. Type{' '}
+                <span style={{ color: '#4db8ff' }}>/today</span> for your daily brief.
               </span>
             </div>
           </div>
