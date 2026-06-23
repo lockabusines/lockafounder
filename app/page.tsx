@@ -7,6 +7,8 @@ import { CaptureBox } from '@/components/dashboard/CaptureBox'
 import { MealPlanner } from '@/components/dashboard/MealPlanner'
 import { ShoppingList } from '@/components/dashboard/ShoppingList'
 
+const MUTED = 'rgba(100,140,180,0.55)'
+
 export default function HomePage() {
   return (
     <div className="flex flex-col min-h-dvh">
@@ -23,18 +25,29 @@ export default function HomePage() {
             <Link href="/mission">
               <div
                 className="glass p-4 flex items-center justify-between gap-3 cursor-pointer transition-all hover:opacity-80"
-                style={{ border: '1px solid oklch(0.78 0.18 80 / 0.4)', background: 'oklch(0.78 0.18 80 / 0.05)' }}
+                style={{ border: '1px solid rgba(255,200,0,0.35)', background: 'rgba(255,180,0,0.04)' }}
               >
                 <div>
-                  <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'oklch(0.78 0.18 80)' }}>
-                    Mission Control
-                  </p>
+                  <p className="label" style={{ color: 'rgba(255,200,0,0.8)' }}>Mission Control</p>
                   <p className="text-sm font-bold text-white mt-0.5">Retire Mum 👑</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'oklch(0.40 0.008 264)' }}>
-                    Income streams · Pipeline · Gap tracker
-                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: MUTED }}>Income streams · Gap tracker</p>
                 </div>
-                <span className="text-2xl">→</span>
+                <span className="text-xl" style={{ color: 'rgba(255,200,0,0.6)' }}>→</span>
+              </div>
+            </Link>
+
+            {/* CRM link */}
+            <Link href="/crm">
+              <div
+                className="glass p-4 flex items-center justify-between gap-3 cursor-pointer transition-all hover:opacity-80"
+                style={{ border: '1px solid rgba(0,200,255,0.35)', background: 'rgba(0,180,255,0.04)' }}
+              >
+                <div>
+                  <p className="label" style={{ color: 'rgba(0,200,255,0.8)' }}>CRM</p>
+                  <p className="text-sm font-bold text-white mt-0.5">Jobs & Clients 📋</p>
+                  <p className="text-xs mt-0.5" style={{ color: MUTED }}>Pipeline · Contacts · Revenue</p>
+                </div>
+                <span className="text-xl" style={{ color: 'rgba(0,200,255,0.6)' }}>→</span>
               </div>
             </Link>
           </div>
