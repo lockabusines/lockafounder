@@ -7,7 +7,7 @@ export async function GET() {
   const db = createServiceClient()
   const { data } = await db
     .from('opportunities')
-    .select('*, crm_contacts(name, phone, company)')
+    .select('*, crm_contacts(name, phone, company, job_title, linkedin)')
     .eq('user_id', UID())
     .order('created_at', { ascending: false })
   return Response.json(data ?? [])
@@ -26,6 +26,11 @@ export async function POST(req: NextRequest) {
     due_date: body.due_date ?? null,
     description: body.description ?? null,
     contact_id: body.contact_id ?? null,
+    expected_close_date: body.expected_close_date ?? null,
+    owner: body.owner ?? null,
+    next_steps: body.next_steps ?? null,
+    interaction_log: body.interaction_log ?? null,
+    last_contact_date: body.last_contact_date ?? null,
   }).select().single()
   if (error) return Response.json({ error: error.message }, { status: 400 })
   return Response.json(data)
@@ -36,16 +41,15 @@ export async function PATCH(req: NextRequest) {
   const { id, ...updates } = await req.json()
   if (!id) return Response.json({ error: 'id required' }, { status: 400 })
 
-  // set timestamps based on status change
-  if (updates.status === 'won') updates.completed_at = new Date().toISOString()
-  if (updates.status === 'invoiced') updates.invoiced_at = new Date().toISOString()
-  if (updates.status === 'paid') updates.paid_at = new Date().toISOString()
+  if (updates.status === 'won')      updates.completed_at = new Date().toISOString()
+  if (updates.status === 'invoiced') updates.invoiced_at  = new Date().toISOString()
+  if (updates.status === 'paid')     updates.paid_at      = new Date().toISOString()
 
   const { data, error } = await db
     .from('opportunities')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id).eq('user_id', UID())
-    .select('*, crm_contacts(name, phone, company)').single()
+    .select('*, crm_contacts(name, phone, company, job_title, linkedin)').single()
   if (error) return Response.json({ error: error.message }, { status: 400 })
   return Response.json(data)
 }
