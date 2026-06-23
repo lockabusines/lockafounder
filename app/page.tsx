@@ -32,6 +32,14 @@ const NAV_CARDS = [
     sub: 'Due dates · Week view · Overdue',
     accent: '#a78bfa',
   },
+  {
+    href: '/expenses',
+    id: '08',
+    label: 'Expenses',
+    title: 'Daily Spend Log',
+    sub: 'Log · By category · Monthly total',
+    accent: '#ff4455',
+  },
 ]
 
 export default function HomePage() {
