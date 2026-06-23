@@ -46,7 +46,7 @@ export function OpportunityPipeline() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, value: form.value ? Number(form.value) : null }),
     })
-    if (r.ok) { setOpps(prev => [await r.json(), ...prev]); setForm({ name: '', skill: 'other', status: 'lead', value: '' }); setAdding(false) }
+    if (r.ok) { const newOpp = await r.json(); setOpps(prev => [newOpp, ...prev]); setForm({ name: '', skill: 'other', status: 'lead', value: '' }); setAdding(false) }
     setSaving(false)
   }
 
