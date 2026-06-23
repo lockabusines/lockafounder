@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { TopRail } from '@/components/dashboard/TopRail'
 
+// ── Design tokens ─────────────────────────────────────────────────────────
 const G = {
   green:  '#1aff8c',
   red:    '#ff4455',
@@ -17,21 +18,28 @@ const G = {
   card2:  '#1c1c1f',
 }
 
+const DAYS   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const URGENCIES = ['low','medium','high','critical']
+const CATEGORIES = ['general','health','business','wealth','discipline','charisma']
+
 interface Task {
   id: string
   title: string
   urgency: string
   xp_value: number
+  category: string
   mission_roi: number
   due_date?: string | null
   status: string
 }
 
-interface CalDay {
-  date: Date
-  isCurrentMonth: boolean
-  isToday: boolean
-  tasks: Task[]
+interface NewTaskForm {
+  title: string
+  urgency: string
+  category: string
+  mission_roi: number
+  due_date: string
 }
 
 function roiColor(roi: number) {
@@ -41,19 +49,37 @@ function roiColor(roi: number) {
   return G.muted
 }
 
-const DAYS   = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+function urgencyColor(u: string) {
+  if (u === 'critical') return G.red
+  if (u === 'high')     return G.gold
+  if (u === 'medium')   return G.blue
+  return G.muted
+}
 
+const emptyForm = (date = ''): NewTaskForm => ({
+  title: '', urgency: 'medium', category: 'general', mission_roi: 3, due_date: date,
+})
+
+// ── Page ──────────────────────────────────────────────────────────────────
 export default function CalendarPage() {
-  const [tasks, setTasks]     = useState<Task[]>([])
-  const [loading, setLoading] = useState(true)
-  const [year, setYear]       = useState(() => new Date().getFullYear())
-  const [month, setMonth]     = useState(() => new Date().getMonth())
-  const [selected, setSelected] = useState<CalDay | null>(null)
-  const [editingTask, setEditingTask] = useState<Task | null>(null)
-  const [newTitle, setNewTitle] = useState('')
-  const [newDue, setNewDue]     = useState('')
-  const [addingOn, setAddingOn] = useState<string | null>(null)
+  const [tasks, setTasks]       = useState<Task[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [year, setYear]         = useState(() => new Date().getFullYear())
+  const [month, setMonth]       = useState(() => new Date().getMonth())
+
+  // Panel state
+  const [panel, setPanel] = useState<
+    | { type: 'day';  date: string }
+    | { type: 'task'; task: Task }
+    | null
+  >(null)
+
+  // Add task form
+  const [addForm, setAddForm]   = useState<NewTaskForm | null>(null)
+  const [saving, setSaving]     = useState(false)
+  const titleRef = useRef<HTMLInputElement>(null)
+
+  const today = new Date().toISOString().split('T')[0]
 
   const load = useCallback(async () => {
     const data = await fetch('/api/tasks').then(r => r.ok ? r.json() : [])
@@ -62,306 +88,445 @@ export default function CalendarPage() {
 
   useEffect(() => { load() }, [load])
 
+  // Focus title when form opens
+  useEffect(() => {
+    if (addForm) setTimeout(() => titleRef.current?.focus(), 50)
+  }, [addForm])
+
   function prevMonth() {
     if (month === 0) { setMonth(11); setYear(y => y - 1) }
     else setMonth(m => m - 1)
-    setSelected(null)
+    setPanel(null); setAddForm(null)
   }
   function nextMonth() {
     if (month === 11) { setMonth(0); setYear(y => y + 1) }
     else setMonth(m => m + 1)
-    setSelected(null)
+    setPanel(null); setAddForm(null)
+  }
+  function goToday() {
+    const n = new Date()
+    setYear(n.getFullYear()); setMonth(n.getMonth())
+    setPanel({ type: 'day', date: today })
+    setAddForm(null)
   }
 
-  // Build calendar grid (Mon-start)
-  const grid: CalDay[] = []
-  const firstDay = new Date(year, month, 1)
-  const lastDay  = new Date(year, month + 1, 0)
-  const startDow = (firstDay.getDay() + 6) % 7 // Mon=0
-  const today    = new Date().toISOString().split('T')[0]
+  // Build grid
+  const firstDay  = new Date(year, month, 1)
+  const lastDay   = new Date(year, month + 1, 0)
+  const startDow  = (firstDay.getDay() + 6) % 7
 
-  // Prev month padding
+  type GridDay = { date: Date; dateStr: string; inMonth: boolean; isToday: boolean; tasks: Task[] }
+  const grid: GridDay[] = []
+
   for (let i = startDow - 1; i >= 0; i--) {
     const d = new Date(year, month, -i)
-    grid.push({ date: d, isCurrentMonth: false, isToday: false, tasks: [] })
+    grid.push({ date: d, dateStr: d.toISOString().split('T')[0], inMonth: false, isToday: false, tasks: [] })
   }
-  // Current month
   for (let d = 1; d <= lastDay.getDate(); d++) {
     const date = new Date(year, month, d)
     const dateStr = date.toISOString().split('T')[0]
-    const dayTasks = tasks.filter(t => t.due_date === dateStr)
-    grid.push({ date, isCurrentMonth: true, isToday: dateStr === today, tasks: dayTasks })
+    grid.push({ date, dateStr, inMonth: true, isToday: dateStr === today, tasks: tasks.filter(t => t.due_date === dateStr) })
   }
-  // Next month padding
-  const remaining = 42 - grid.length
-  for (let i = 1; i <= remaining; i++) {
+  const rem = 42 - grid.length
+  for (let i = 1; i <= rem; i++) {
     const d = new Date(year, month + 1, i)
-    grid.push({ date: d, isCurrentMonth: false, isToday: false, tasks: [] })
+    grid.push({ date: d, dateStr: d.toISOString().split('T')[0], inMonth: false, isToday: false, tasks: [] })
   }
 
-  // Tasks with no due date
+  const overdue     = tasks.filter(t => t.due_date && t.due_date < today)
   const unscheduled = tasks.filter(t => !t.due_date)
-  // Overdue tasks
-  const overdue = tasks.filter(t => t.due_date && t.due_date < today)
+
+  async function addTask() {
+    if (!addForm?.title.trim()) return
+    setSaving(true)
+    const res = await fetch('/api/tasks', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(addForm),
+    })
+    if (res.ok) {
+      const created = await res.json()
+      setTasks(prev => [...prev, created])
+      setAddForm(null)
+      // Switch panel to show the day
+      setPanel({ type: 'day', date: addForm.due_date })
+    }
+    setSaving(false)
+  }
+
+  async function deleteTask(id: string) {
+    await fetch(`/api/tasks/${id}/complete`, { method: 'POST' })
+    setTasks(t => t.filter(x => x.id !== id))
+    if (panel?.type === 'task') setPanel(null)
+  }
 
   async function setDue(id: string, due_date: string) {
-    await fetch('/api/tasks', {
+    const res = await fetch('/api/tasks', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, due_date: due_date || null }),
     })
-    load()
+    if (res.ok) {
+      const updated = await res.json()
+      setTasks(t => t.map(x => x.id === id ? updated : x))
+      if (panel?.type === 'task') setPanel({ type: 'task', task: updated })
+    }
   }
 
-  async function complete(id: string) {
-    await fetch(`/api/tasks/${id}/complete`, { method: 'POST' })
-    load()
-    setSelected(s => s ? { ...s, tasks: s.tasks.filter(t => t.id !== id) } : null)
-  }
-
-  async function addTask(dueDate: string) {
-    if (!newTitle.trim()) return
-    await fetch('/api/tasks', {
-      method: 'PATCH', // will use a real add endpoint if available, fallback to Telegram
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTitle, due_date: dueDate }),
-    })
-    setNewTitle(''); setAddingOn(null); load()
-  }
+  // Derived panel data
+  const panelDayTasks = panel?.type === 'day' ? tasks.filter(t => t.due_date === panel.date) : []
+  const panelDate     = panel?.type === 'day' ? new Date(panel.date + 'T12:00:00') : null
 
   return (
     <div className="flex flex-col min-h-dvh">
       <TopRail />
-      <main className="flex-1 p-4 md:p-5">
-        <div className="max-w-6xl mx-auto flex flex-col gap-4">
+      <main className="flex-1 p-4 md:p-5 overflow-hidden">
+        <div className="max-w-7xl mx-auto flex flex-col gap-3 h-full">
 
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-xs" style={{ color: G.muted }}>
-            <Link href="/" className="hover:opacity-70 transition-opacity">Dashboard</Link>
-            <span style={{ color: G.faint }}>/</span>
-            <span style={{ color: '#f0f0f0' }}>Calendar</span>
+          {/* Breadcrumb + nav */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-xs" style={{ color: G.muted }}>
+              <Link href="/" className="hover:opacity-70">Dashboard</Link>
+              <span style={{ color: G.faint }}>/</span>
+              <span style={{ color: '#f0f0f0' }}>Calendar</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={goToday} className="px-3 py-1.5 rounded text-xs font-semibold transition-colors hover:bg-white/5"
+                style={{ color: G.muted, border: `1px solid ${G.border}` }}>Today</button>
+              <button onClick={prevMonth} className="w-8 h-8 rounded flex items-center justify-center text-sm transition-colors hover:bg-white/5"
+                style={{ color: G.muted }}>‹</button>
+              <span className="text-sm font-semibold w-36 text-center" style={{ color: '#f0f0f0' }}>
+                {MONTHS[month]} {year}
+              </span>
+              <button onClick={nextMonth} className="w-8 h-8 rounded flex items-center justify-center text-sm transition-colors hover:bg-white/5"
+                style={{ color: G.muted }}>›</button>
+            </div>
+            <div className="flex items-center gap-3 text-xs" style={{ color: G.muted }}>
+              {overdue.length > 0 && <span style={{ color: G.red }}>⚠ {overdue.length} overdue</span>}
+              {unscheduled.length > 0 && <span>{unscheduled.length} unscheduled</span>}
+              <span>{tasks.length} total tasks</span>
+            </div>
           </div>
 
-          {/* Alert strips */}
-          {overdue.length > 0 && (
-            <div className="flex flex-wrap gap-2 p-3 rounded" style={{ background: `${G.red}10`, border: `1px solid ${G.red}30` }}>
-              <span style={{ color: G.red, fontSize: '0.7rem', fontWeight: 600 }}>⚠ {overdue.length} overdue task{overdue.length > 1 ? 's' : ''}:</span>
-              {overdue.map(t => (
-                <span key={t.id} className="text-xs px-2 py-0.5 rounded"
-                  style={{ background: `${G.red}18`, color: G.red }}>
-                  {t.title} · {t.due_date}
-                </span>
-              ))}
-            </div>
-          )}
+          {/* Main layout */}
+          <div className="flex gap-3 flex-1 min-h-0">
 
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-4">
-
-            {/* Calendar */}
-            <div className="flex flex-col gap-3">
-              {/* Month nav */}
-              <div className="flex items-center justify-between">
-                <button onClick={prevMonth} className="px-3 py-1.5 rounded text-sm transition-colors hover:bg-white/5"
-                  style={{ color: G.muted }}>← prev</button>
-                <h2 className="text-base font-semibold" style={{ color: '#f0f0f0' }}>
-                  {MONTHS[month]} {year}
-                </h2>
-                <button onClick={nextMonth} className="px-3 py-1.5 rounded text-sm transition-colors hover:bg-white/5"
-                  style={{ color: G.muted }}>next →</button>
-              </div>
-
+            {/* Calendar grid */}
+            <div className="flex flex-col flex-1 min-w-0">
               {/* Day headers */}
-              <div className="grid grid-cols-7 gap-px">
+              <div className="grid grid-cols-7 mb-1">
                 {DAYS.map(d => (
-                  <div key={d} className="py-2 text-center" style={{ color: G.faint, fontSize: '0.62rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{d}</div>
+                  <div key={d} className="py-1.5 text-center"
+                    style={{ color: G.faint, fontSize: '0.62rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    {d}
+                  </div>
                 ))}
               </div>
 
               {/* Grid */}
-              <div className="grid grid-cols-7 gap-px rounded overflow-hidden" style={{ background: G.border }}>
+              <div className="grid grid-cols-7 gap-px flex-1 rounded overflow-hidden" style={{ background: G.border }}>
                 {grid.map((day, i) => {
-                  const dateStr = day.date.toISOString().split('T')[0]
-                  const isSelected = selected?.date.toISOString().split('T')[0] === dateStr
+                  const isSelected = panel?.type === 'day' && panel.date === day.dateStr
+                  const isAddingHere = addForm?.due_date === day.dateStr
                   return (
-                    <button key={i} onClick={() => setSelected(isSelected ? null : day)}
-                      className="flex flex-col gap-0.5 p-2 min-h-[72px] text-left transition-colors relative"
+                    <div key={i}
+                      className="flex flex-col group cursor-pointer transition-colors relative"
                       style={{
-                        background: isSelected ? 'rgba(255,255,255,0.07)' : day.isToday ? 'rgba(26,255,140,0.06)' : G.card,
-                        opacity: day.isCurrentMonth ? 1 : 0.3,
-                      }}>
-                      <span className="text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full"
-                        style={{
-                          color: day.isToday ? '#000' : day.isCurrentMonth ? '#e0e0e0' : G.faint,
-                          background: day.isToday ? G.green : 'transparent',
-                          fontSize: '0.72rem',
-                        }}>
-                        {day.date.getDate()}
-                      </span>
-                      {/* Task dots / pills */}
-                      <div className="flex flex-col gap-0.5 w-full overflow-hidden">
-                        {day.tasks.slice(0, 3).map(t => (
-                          <div key={t.id} className="text-[10px] px-1 py-0.5 rounded truncate leading-tight"
-                            style={{ background: `${roiColor(t.mission_roi)}18`, color: roiColor(t.mission_roi) }}>
-                            {t.title}
-                          </div>
-                        ))}
-                        {day.tasks.length > 3 && (
-                          <span style={{ color: G.muted, fontSize: '0.6rem' }}>+{day.tasks.length - 3} more</span>
+                        background: isSelected || isAddingHere
+                          ? 'rgba(255,255,255,0.07)'
+                          : day.isToday
+                          ? 'rgba(26,255,140,0.05)'
+                          : G.card,
+                        opacity: day.inMonth ? 1 : 0.3,
+                        minHeight: 80,
+                      }}
+                      onClick={() => {
+                        if (!day.inMonth) return
+                        setPanel({ type: 'day', date: day.dateStr })
+                        setAddForm(null)
+                      }}
+                    >
+                      {/* Date number */}
+                      <div className="flex items-center justify-between px-2 pt-1.5 pb-0.5">
+                        <span className="text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full"
+                          style={{
+                            color: day.isToday ? '#000' : '#d0d0d0',
+                            background: day.isToday ? G.green : 'transparent',
+                            fontSize: '0.72rem',
+                          }}>
+                          {day.date.getDate()}
+                        </span>
+                        {/* + button on hover */}
+                        {day.inMonth && (
+                          <button
+                            onClick={e => {
+                              e.stopPropagation()
+                              setAddForm(emptyForm(day.dateStr))
+                              setPanel({ type: 'day', date: day.dateStr })
+                            }}
+                            className="w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                            style={{ color: G.muted, background: 'rgba(255,255,255,0.06)' }}>
+                            +
+                          </button>
                         )}
                       </div>
-                    </button>
+
+                      {/* Tasks */}
+                      <div className="flex flex-col gap-0.5 px-1 pb-1 overflow-hidden">
+                        {day.tasks.slice(0, 4).map(t => (
+                          <button key={t.id}
+                            onClick={e => { e.stopPropagation(); setPanel({ type: 'task', task: t }); setAddForm(null) }}
+                            className="text-left text-[11px] px-1.5 py-0.5 rounded truncate leading-tight w-full transition-opacity hover:opacity-80"
+                            style={{ background: `${roiColor(t.mission_roi)}20`, color: roiColor(t.mission_roi) }}>
+                            {t.title}
+                          </button>
+                        ))}
+                        {day.tasks.length > 4 && (
+                          <span style={{ color: G.muted, fontSize: '0.6rem', paddingLeft: 6 }}>+{day.tasks.length - 4} more</span>
+                        )}
+                      </div>
+                    </div>
                   )
                 })}
               </div>
             </div>
 
-            {/* Side panel */}
-            <div className="flex flex-col gap-3">
+            {/* Right panel */}
+            <div className="w-72 shrink-0 flex flex-col gap-3 overflow-y-auto">
 
-              {/* Selected day detail */}
-              {selected ? (
+              {/* Add task form */}
+              {addForm && (
+                <div className="rounded overflow-hidden" style={{ background: G.card2, border: `1px solid ${G.green}33` }}>
+                  <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${G.border}` }}>
+                    <div>
+                      <p style={{ color: G.green, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>New Task</p>
+                      <p className="text-sm font-semibold mt-0.5" style={{ color: '#f0f0f0' }}>
+                        {new Date(addForm.due_date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      </p>
+                    </div>
+                    <button onClick={() => setAddForm(null)} style={{ color: G.muted, fontSize: '1rem' }}>×</button>
+                  </div>
+
+                  <div className="flex flex-col gap-3 p-4">
+                    <input ref={titleRef}
+                      placeholder="Task title…"
+                      value={addForm.title}
+                      onChange={e => setAddForm(f => f ? { ...f, title: e.target.value } : f)}
+                      onKeyDown={e => e.key === 'Enter' && addTask()}
+                      className="w-full px-3 py-2 rounded text-sm"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid rgba(255,255,255,0.12)`, color: '#f0f0f0' }}
+                    />
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-col gap-1">
+                        <label style={{ color: G.faint, fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Urgency</label>
+                        <select value={addForm.urgency} onChange={e => setAddForm(f => f ? { ...f, urgency: e.target.value } : f)}
+                          className="px-2 py-1.5 rounded text-xs capitalize">
+                          {URGENCIES.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label style={{ color: G.faint, fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Category</label>
+                        <select value={addForm.category} onChange={e => setAddForm(f => f ? { ...f, category: e.target.value } : f)}
+                          className="px-2 py-1.5 rounded text-xs capitalize">
+                          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label style={{ color: G.faint, fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Mission ROI (1–5)</label>
+                      <div className="flex gap-1">
+                        {[1,2,3,4,5].map(n => (
+                          <button key={n} onClick={() => setAddForm(f => f ? { ...f, mission_roi: n } : f)}
+                            className="flex-1 py-1.5 rounded text-xs font-bold transition-colors"
+                            style={{
+                              background: addForm.mission_roi === n ? `${roiColor(n)}30` : 'rgba(255,255,255,0.04)',
+                              color: addForm.mission_roi === n ? roiColor(n) : G.muted,
+                              border: `1px solid ${addForm.mission_roi === n ? roiColor(n) + '50' : 'transparent'}`,
+                            }}>
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                      <p style={{ color: G.faint, fontSize: '0.6rem' }}>
+                        {addForm.mission_roi >= 5 ? '💰 Direct money move' : addForm.mission_roi >= 4 ? '📈 High ROI' : addForm.mission_roi >= 3 ? '🔧 Medium ROI' : '📋 Low priority'}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label style={{ color: G.faint, fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Date</label>
+                      <input type="date" value={addForm.due_date}
+                        onChange={e => setAddForm(f => f ? { ...f, due_date: e.target.value } : f)}
+                        className="px-2 py-1.5 rounded text-xs" />
+                    </div>
+
+                    <button onClick={addTask} disabled={saving || !addForm.title.trim()}
+                      className="w-full py-2.5 rounded text-sm font-bold transition-opacity"
+                      style={{
+                        background: G.green, color: '#000',
+                        opacity: (!addForm.title.trim() || saving) ? 0.4 : 1,
+                      }}>
+                      {saving ? 'Adding…' : 'Add Task'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Day panel */}
+              {panel?.type === 'day' && !addForm && (
                 <div className="rounded overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
                   <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${G.border}` }}>
                     <div>
                       <p style={{ color: G.faint, fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                        {selected.date.toLocaleDateString('en-GB', { weekday: 'long' })}
+                        {panelDate?.toLocaleDateString('en-GB', { weekday: 'long' })}
                       </p>
-                      <p className="text-base font-bold" style={{ color: '#f0f0f0' }}>
-                        {selected.date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
+                      <p className="text-base font-semibold" style={{ color: '#f0f0f0' }}>
+                        {panelDate?.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
                       </p>
                     </div>
-                    <span className="text-xl font-black font-mono" style={{ color: G.blue }}>{selected.tasks.length}</span>
+                    <button
+                      onClick={() => setAddForm(emptyForm(panel.date))}
+                      className="px-3 py-1.5 rounded text-xs font-bold"
+                      style={{ background: `${G.green}18`, color: G.green, border: `1px solid ${G.green}33` }}>
+                      + Add
+                    </button>
                   </div>
 
-                  {selected.tasks.length === 0 ? (
-                    <p className="px-4 py-3 text-xs" style={{ color: G.muted }}>No tasks this day.</p>
+                  {panelDayTasks.length === 0 ? (
+                    <div className="px-4 py-6 text-center">
+                      <p className="text-sm" style={{ color: G.muted }}>Nothing scheduled.</p>
+                      <button onClick={() => setAddForm(emptyForm(panel.date))}
+                        className="mt-2 text-xs underline" style={{ color: G.green }}>
+                        Add a task
+                      </button>
+                    </div>
                   ) : (
                     <div className="flex flex-col divide-y" style={{ borderColor: G.border }}>
-                      {selected.tasks.map(t => (
+                      {panelDayTasks.map(t => (
                         <div key={t.id} className="px-4 py-3 flex items-start gap-3">
-                          <button onClick={() => complete(t.id)}
-                            className="w-4 h-4 rounded border shrink-0 mt-0.5 transition-colors hover:border-green-400"
-                            style={{ borderColor: 'rgba(255,255,255,0.2)' }} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm" style={{ color: '#e0e0e0' }}>{t.title}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] px-1 py-0.5 rounded"
-                                style={{ background: `${roiColor(t.mission_roi)}18`, color: roiColor(t.mission_roi) }}>
-                                ROI {t.mission_roi}
+                          <button onClick={() => deleteTask(t.id)}
+                            className="w-4 h-4 rounded border shrink-0 mt-0.5 transition-colors hover:border-green-400 hover:bg-green-400/10"
+                            style={{ borderColor: 'rgba(255,255,255,0.2)' }} title="Mark complete" />
+                          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setPanel({ type: 'task', task: t })}>
+                            <p className="text-sm" style={{ color: '#e8e8e8' }}>{t.title}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] px-1 py-0.5 rounded capitalize"
+                                style={{ background: `${urgencyColor(t.urgency)}15`, color: urgencyColor(t.urgency) }}>
+                                {t.urgency}
                               </span>
-                              <span style={{ color: G.blue, fontSize: '0.65rem', fontFamily: 'var(--font-geist-mono)' }}>+{t.xp_value} XP</span>
+                              <span className="text-[10px]" style={{ color: G.blue, fontFamily: 'var(--font-geist-mono)' }}>+{t.xp_value}xp</span>
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
-
-                  {/* Reschedule tasks to this day */}
-                  {unscheduled.length > 0 && (
-                    <div style={{ borderTop: `1px solid ${G.border}` }}>
-                      <p className="px-4 py-2" style={{ color: G.faint, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                        Schedule a task here
-                      </p>
-                      <div className="flex flex-col max-h-40 overflow-y-auto">
-                        {unscheduled.slice(0, 8).map(t => (
-                          <button key={t.id} onClick={() => setDue(t.id, selected.date.toISOString().split('T')[0])}
-                            className="px-4 py-2 text-left text-xs transition-colors hover:bg-white/5 flex items-center gap-2"
-                            style={{ color: G.muted }}>
-                            <span style={{ color: roiColor(t.mission_roi) }}>+</span>
-                            {t.title}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded p-4 text-center" style={{ background: G.card, border: `1px solid ${G.border}` }}>
-                  <p className="text-sm" style={{ color: G.muted }}>Click a day to see tasks</p>
                 </div>
               )}
 
-              {/* Unscheduled tasks */}
-              <div className="rounded overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
-                <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${G.border}` }}>
-                  <div className="flex items-center gap-2">
-                    <span style={{ color: G.faint, fontSize: '0.58rem' }}>// </span>
-                    <span style={{ color: G.muted, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Unscheduled</span>
-                  </div>
-                  <span className="text-xs font-mono font-bold" style={{ color: unscheduled.length > 0 ? G.gold : G.faint }}>{unscheduled.length}</span>
-                </div>
-                {loading ? (
-                  <div className="p-4 flex flex-col gap-2">
-                    {[1,2,3].map(i => <div key={i} className="h-8 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />)}
-                  </div>
-                ) : unscheduled.length === 0 ? (
-                  <p className="px-4 py-3 text-xs" style={{ color: G.muted }}>All tasks scheduled.</p>
-                ) : (
-                  <div className="flex flex-col divide-y max-h-72 overflow-y-auto" style={{ borderColor: G.border }}>
-                    {unscheduled.map(t => (
-                      <div key={t.id} className="px-4 py-2.5 flex items-center gap-2 group">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs truncate" style={{ color: '#e0e0e0' }}>{t.title}</p>
-                          <span className="text-[10px]" style={{ color: roiColor(t.mission_roi) }}>ROI {t.mission_roi}</span>
-                        </div>
-                        <input type="date" className="text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#e0e0e0', width: 110 }}
-                          onChange={e => e.target.value && setDue(t.id, e.target.value)} />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Task detail panel */}
+              {panel?.type === 'task' && (
+                <TaskDetailPanel
+                  task={panel.task}
+                  onClose={() => setPanel(null)}
+                  onComplete={() => deleteTask(panel.task.id)}
+                  onSetDue={(date) => setDue(panel.task.id, date)}
+                />
+              )}
 
-              {/* This week summary */}
-              <ThisWeek tasks={tasks} today={today} />
+              {/* Unscheduled */}
+              {!addForm && (
+                <div className="rounded overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+                  <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${G.border}` }}>
+                    <span style={{ color: G.muted, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Unscheduled</span>
+                    <span className="font-mono text-xs font-bold" style={{ color: unscheduled.length > 0 ? G.gold : G.faint }}>
+                      {unscheduled.length}
+                    </span>
+                  </div>
+                  {unscheduled.length === 0 ? (
+                    <p className="px-4 py-3 text-xs" style={{ color: G.faint }}>All tasks have dates.</p>
+                  ) : (
+                    <div className="flex flex-col divide-y max-h-60 overflow-y-auto" style={{ borderColor: G.border }}>
+                      {unscheduled.map(t => (
+                        <div key={t.id} className="px-4 py-2.5 flex items-center gap-2 group">
+                          <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: roiColor(t.mission_roi) }} />
+                          <span className="flex-1 text-xs truncate" style={{ color: '#d8d8d8' }}>{t.title}</span>
+                          <input type="date"
+                            className="text-[10px] rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#e0e0e0', width: 108 }}
+                            onChange={e => e.target.value && setDue(t.id, e.target.value)} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Quick add button when no panel */}
+              {!panel && !addForm && (
+                <button
+                  onClick={() => setAddForm(emptyForm(today))}
+                  className="w-full py-3 rounded text-sm font-semibold transition-colors hover:opacity-90"
+                  style={{ background: `${G.green}18`, color: G.green, border: `1px solid ${G.green}33` }}>
+                  + Add task for today
+                </button>
+              )}
             </div>
           </div>
-
         </div>
       </main>
     </div>
   )
 }
 
-function ThisWeek({ tasks, today }: { tasks: Task[]; today: string }) {
-  const start = new Date(today)
-  const dow   = (start.getDay() + 6) % 7
-  start.setDate(start.getDate() - dow)
-  const end = new Date(start); end.setDate(start.getDate() + 6)
-
-  const weekTasks = tasks.filter(t => {
-    if (!t.due_date) return false
-    return t.due_date >= start.toISOString().split('T')[0] && t.due_date <= end.toISOString().split('T')[0]
-  })
-
+// ── Task detail panel ──────────────────────────────────────────────────────
+function TaskDetailPanel({ task, onClose, onComplete, onSetDue }: {
+  task: Task
+  onClose: () => void
+  onComplete: () => void
+  onSetDue: (date: string) => void
+}) {
   return (
-    <div className="rounded overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
-      <div className="px-4 py-3" style={{ borderBottom: `1px solid ${G.border}` }}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span style={{ color: G.faint, fontSize: '0.58rem' }}>//</span>
-            <span style={{ color: G.muted, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>This Week</span>
+    <div className="rounded overflow-hidden" style={{ background: G.card2, border: `1px solid ${roiColor(task.mission_roi)}33` }}>
+      <div className="px-4 py-3 flex items-start justify-between gap-2" style={{ borderBottom: `1px solid ${G.border}` }}>
+        <p className="text-sm font-semibold flex-1" style={{ color: '#f0f0f0' }}>{task.title}</p>
+        <button onClick={onClose} style={{ color: G.muted, fontSize: '1rem', lineHeight: 1 }}>×</button>
+      </div>
+
+      <div className="flex flex-col gap-3 p-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p style={{ color: G.faint, fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Urgency</p>
+            <p className="text-sm font-semibold capitalize mt-0.5" style={{ color: urgencyColor(task.urgency) }}>{task.urgency}</p>
           </div>
-          <span className="text-xs font-mono font-bold" style={{ color: G.blue }}>{weekTasks.length} tasks</span>
+          <div>
+            <p style={{ color: G.faint, fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Category</p>
+            <p className="text-sm font-semibold capitalize mt-0.5" style={{ color: '#e0e0e0' }}>{task.category}</p>
+          </div>
+          <div>
+            <p style={{ color: G.faint, fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Mission ROI</p>
+            <p className="text-sm font-bold mt-0.5" style={{ color: roiColor(task.mission_roi) }}>{task.mission_roi} / 5</p>
+          </div>
+          <div>
+            <p style={{ color: G.faint, fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>XP</p>
+            <p className="text-sm font-mono font-bold mt-0.5" style={{ color: G.blue }}>+{task.xp_value}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label style={{ color: G.faint, fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Due date</label>
+          <input type="date" defaultValue={task.due_date ?? ''}
+            onChange={e => onSetDue(e.target.value)}
+            className="px-3 py-2 rounded text-sm" />
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <button onClick={onComplete}
+            className="flex-1 py-2 rounded text-xs font-bold"
+            style={{ background: `${G.green}18`, color: G.green, border: `1px solid ${G.green}33` }}>
+            ✓ Mark complete
+          </button>
         </div>
       </div>
-      {weekTasks.length === 0 ? (
-        <p className="px-4 py-3 text-xs" style={{ color: G.muted }}>Nothing scheduled this week.</p>
-      ) : (
-        <div className="flex flex-col divide-y" style={{ borderColor: G.border }}>
-          {weekTasks.sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? '')).map(t => (
-            <div key={t.id} className="px-4 py-2.5 flex items-center gap-2">
-              <span className="text-[10px] font-mono w-12 shrink-0"
-                style={{ color: t.due_date === today ? G.gold : G.muted }}>
-                {t.due_date === today ? 'TODAY' : new Date(t.due_date!).toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}
-              </span>
-              <span className="flex-1 text-xs truncate" style={{ color: '#e0e0e0' }}>{t.title}</span>
-              <span className="text-[10px] w-1.5 h-1.5 rounded-full shrink-0" style={{ background: roiColor(t.mission_roi) }} />
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
