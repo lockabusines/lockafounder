@@ -32,6 +32,38 @@ const NAV_CARDS = [
     sub: 'Due dates · Week view · Overdue',
     accent: '#a78bfa',
   },
+  {
+    href: '/goals',
+    id: '08',
+    label: 'Goals & OKRs',
+    title: 'Vision Hub',
+    sub: 'Quarterly · Annual · Lifetime',
+    accent: '#f5c842',
+  },
+  {
+    href: '/notes',
+    id: '09',
+    label: 'Notes',
+    title: 'Second Brain',
+    sub: 'Tagged · Pinned · Searchable',
+    accent: '#1aff8c',
+  },
+  {
+    href: '/projects',
+    id: '10',
+    label: 'Projects',
+    title: 'Project Board',
+    sub: 'Kanban · Linked to clients',
+    accent: '#a78bfa',
+  },
+  {
+    href: '/analytics',
+    id: '11',
+    label: 'Analytics',
+    title: 'Insights',
+    sub: 'Finance · Tasks · Habits · CRM',
+    accent: '#ff4455',
+  },
 ]
 
 export default function HomePage() {

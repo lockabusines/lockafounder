@@ -47,6 +47,18 @@ export function TopRail() {
         <Link href="/calendar" className="px-2 py-1 rounded transition-colors hover:bg-white/5">
           <span style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.62rem' }}>Calendar</span>
         </Link>
+        <Link href="/goals" className="px-2 py-1 rounded transition-colors hover:bg-white/5">
+          <span style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.62rem' }}>Goals</span>
+        </Link>
+        <Link href="/notes" className="px-2 py-1 rounded transition-colors hover:bg-white/5">
+          <span style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.62rem' }}>Notes</span>
+        </Link>
+        <Link href="/projects" className="hidden lg:block px-2 py-1 rounded transition-colors hover:bg-white/5">
+          <span style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.62rem' }}>Projects</span>
+        </Link>
+        <Link href="/analytics" className="hidden lg:block px-2 py-1 rounded transition-colors hover:bg-white/5">
+          <span style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.62rem' }}>Analytics</span>
+        </Link>
       </div>
 
       {/* Right — clock */}
