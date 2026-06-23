@@ -24,6 +24,14 @@ const NAV_CARDS = [
     sub: 'Pipeline · Contacts · Revenue',
     accent: '#4db8ff',
   },
+  {
+    href: '/calendar',
+    id: '07',
+    label: 'Calendar',
+    title: 'Task Schedule',
+    sub: 'Due dates · Week view · Overdue',
+    accent: '#a78bfa',
+  },
 ]
 
 export default function HomePage() {

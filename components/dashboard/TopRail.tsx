@@ -44,6 +44,9 @@ export function TopRail() {
         <Link href="/crm" className="px-2 py-1 rounded transition-colors hover:bg-white/5">
           <span style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.62rem' }}>CRM</span>
         </Link>
+        <Link href="/calendar" className="px-2 py-1 rounded transition-colors hover:bg-white/5">
+          <span style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.62rem' }}>Calendar</span>
+        </Link>
       </div>
 
       {/* Right — clock */}
