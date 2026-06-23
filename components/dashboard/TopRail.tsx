@@ -42,11 +42,16 @@ export function TopRail() {
         </span>
         <span style={{ color: 'rgba(0, 140, 255, 0.3)', fontSize: '0.6rem', marginLeft: 4 }}>▸</span>
         <Link href="/mission">
-          <span
-            className="text-xs tracking-wider uppercase transition-all hover:opacity-80"
-            style={{ fontFamily: 'Orbitron, sans-serif', color: 'rgba(255,200,0,0.7)', letterSpacing: '0.12em' }}
-          >
+          <span className="text-xs tracking-wider uppercase transition-all hover:opacity-80"
+            style={{ fontFamily: 'Orbitron, sans-serif', color: 'rgba(255,200,0,0.7)', letterSpacing: '0.12em' }}>
             Mission
+          </span>
+        </Link>
+        <span style={{ color: 'rgba(0, 140, 255, 0.3)', fontSize: '0.6rem' }}>▸</span>
+        <Link href="/crm">
+          <span className="text-xs tracking-wider uppercase transition-all hover:opacity-80"
+            style={{ fontFamily: 'Orbitron, sans-serif', color: 'rgba(0,220,255,0.7)', letterSpacing: '0.12em' }}>
+            CRM
           </span>
         </Link>
       </div>
