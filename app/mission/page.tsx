@@ -5,6 +5,7 @@ import { TopRail } from '@/components/dashboard/TopRail'
 import { MumCountdown } from '@/components/mission/MumCountdown'
 import { IncomeStreams } from '@/components/mission/IncomeStreams'
 import { OpportunityPipeline } from '@/components/mission/OpportunityPipeline'
+import { ExpenseLog } from '@/components/mission/ExpenseLog'
 import Link from 'next/link'
 
 const MUM_TARGET = 2500  // £ per month passive income needed
@@ -124,6 +125,7 @@ export default function MissionPage() {
 
             {/* Right */}
             <div className="flex flex-col gap-4">
+              <ExpenseLog />
               <OpportunityPipeline />
 
               {/* Next income unlock */}
